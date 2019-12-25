@@ -1,0 +1,29 @@
+#!/bin/bash
+# This script queries a specified Zerotier network and output all member names to a file suitable for /etc/hosts or an alternative hostfile for DNSMASQ
+# echo "Usage: getnetworkmembers <APIKEY> <NETWORKID> <PATH/TO/OUTPUT/FILE> <DOMAIN (optional)>"
+# CAUTION: curl and lq need to be installed.
+# version 0.2
+# by Kim Tholstorf (kim@tholstorf.dk)
+# https://github.com/KimTholstorf/zerotier-scripts/
+# (c)2020 Kim Tholstorf, Some rights reserved
+APIURL="https://my.zerotier.com/api"
+APIKEY="$1"
+NETWORKID="$2"
+URL=$APIURL/network/$NETWORKID/member
+DOMAIN="$3"
+OUTPUT="$4"
+[[ -x "$(command -v jq)" ]] && { echo "Error: jq JSON processor is not installed or in PATH. See https://stedolan.github.io/jq/download/"; exit 1; }
+[[ -z "$APIKEY" ]] && { echo "Error: API KEY must specified"; exit 1; }
+[[ -z "$NETWORKID" ]] && { echo "Error: NETWORK ID not specified"; exit 1; }
+[[ -z "$DOMAIN" ]] && { echo "Error: DOMAIN not specified"; exit 1; }
+JSON=`curl -H "Authorization: bearer $APIKEY" $URL`
+ARRAYLENGHT=`echo $JSON | jq '. | length'`
+ARRAYLENGHT=$(($ARRAYLENGHT - 1))
+for i in $( seq 0 $ARRAYLENGHT )
+    do
+    #loooing through the array of names in the JSON output
+    #current limitation is that it only prints the first IP address in the ipAssignments array
+    #need a aditional for loop to get all IP for a member
+    echo $JSON | jq -r '.['$i'].config.ipAssignments[] + "     " + .['$i'].name + "." + "'$DOMAIN'"' > $OUTPUT
+    #echo $i
+    done
