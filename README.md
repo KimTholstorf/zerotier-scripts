@@ -6,25 +6,25 @@ Nothing fancy just a place for me to dump my stuff before I forget it all.
 ZeroTier is a distributed SDN switch build atop a encrypted P2P network. [Learn more about ZeroTier here](https://www.zerotier.com/about/). You can either use the network controllers [hosted by ZeroTier](https://my.zerotier.com/) or set up your [own standalone network controller](https://key-networks.com/ztncui/) if you're up for the extra effort.
 
 ## getnetworkmembers
-This script pulls the member shortname and IP of all members in a ZeroTier network and outpouts a textfile suited for use with [DNSMASQ](http://www.thekelleys.org.uk/dnsmasq/doc.html). It was created to be used with the `addn-hosts=` option in `dnsmasq.conf`. The textfile is compatible with the /etc/hosts file and can very easily be modified to just append to /etc/hosts.  
+This script pulls the networkname and all member shortnames and IPs of a ZeroTier network and outpouts a textfile suited for use with [DNSMASQ](http://www.thekelleys.org.uk/dnsmasq/doc.html). It was created to be used with the `addn-hosts=` option in `dnsmasq.conf`. The textfile is compatible with the /etc/hosts file and can very easily be modified to just append to /etc/hosts.  
 *TIP: DNSMASQ can with the `addn-hosts` point to just a directory. Have `getnetworkmembers` output a seperate file per network in this directory. DNSMASQ will read all files and serve new networks without any need for reconfiguration.*
 
 ZeroTier shortnames will be handled as hostnames so it is important that all members of a network must not have space or other non-DNS compatible characters in their shortname. Non-compliant members can be renamed from the specific [my.zerotier.com](https://my.zerotier.com/) Network page. 
 
 ***Usage:***
 ```sh
-getnetworkmembers <APIKEY> <NETWORKID> <PATH/TO/OUTPUT/FILE> <DOMAIN>
+getnetworkmembers <APIKEY> <NETWORKID> <PATH/TO/OUTPUT/FILE>
 ```
 or just edit the script variables at the top to avoid the need for any runtime parameters.
 * `APIKEY` is your API Access Token from the [my.zerotier.com](https://my.zerotier.com/) Account page.
 * `NETWORKID` is your Network ID from the [my.zerotier.com](https://my.zerotier.com/) Networks page.
 * `OUTPUT` /path/to/dir/and/filename.zt
-* `DOMAIN` is the domain will be added to the shortnames to create a FQDN - i.e shortname.domain.tld (shortname.test.net).
+* `TLD` is the top-level domain that will be added to create a FQDN out of the networkname and shortname - i.e shortname.networkname.tld (server.office.zt).
 
 ### TODO:
-* Handle shortnames with space (change or remove it)
-* Handle members with more than 1 assigned IP (additional for-loop inside the existing)
-* Use the short name of a network as domain name (and handle spaces in name).
+* ~~Handle shortnames with space (change or remove it).~~ *fixed in 0.5: spaces will be replaced with a "-"*
+* ~~Handle members with more than 1 assigned IP.~~ *fixed in 0.5*
+* ~~Use the short name of a network as domain name (and handle spaces in name).~~ *fixed in 0.5: networkname is now used. Configurable TLD variable as well*
 
 
 [ztlogo]: https://upload.wikimedia.org/wikipedia/en/thumb/f/f1/ZeroTier_Logo.png/150px-ZeroTier_Logo.png
