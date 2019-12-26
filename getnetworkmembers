@@ -1,25 +1,27 @@
   
 #!/bin/bash
 # This script queries a specified Zerotier network and output all member names to a file suitable for /etc/hosts or an alternative hostfile for DNSMASQ
-# echo "Usage: getnetworkmembers <APIKEY> <NETWORKID> <PATH/TO/OUTPUT/FILE> <DOMAIN (optional)>"
+# echo "Usage: getnetworkmembers <APIKEY> <NETWORKID> <PATH/TO/OUTPUT/FILE>"
 # CAUTION: curl and lq need to be installed.
-# version 0.4
+# version 0.5
 # by Kim Tholstorf (kim@tholstorf.dk)
 # https://github.com/KimTholstorf/zerotier-scripts/
 # (c)2020 Kim Tholstorf, Some rights reserved
 #
-#Change these 4 variables below to avoid the need for any runtime parameters
+#Change these 3 variables below to avoid the need for any runtime parameters
 APIKEY="$1"
 NETWORKID="$2"
 OUTPUTFILE="$3" #e.g. /etc/dnsmasq.zerotier
-DOMAIN="$4" #e.g. example.com
+TLD=zt #Top level domain to use with the networkname - networkname.tld
+#DOMAIN="$4" #e.g. example.com
 #[[ -x "$(command -v jq)" ]] && { echo "Error: jq JSON processor is not installed or in PATH. See https://stedolan.github.io/jq/download/"; exit 1; }
 [[ -z "$APIKEY" ]] && { echo "Error: API KEY must specified.\nUsage: getnetworkmembers <APIKEY> <NETWORKID> <PATH/TO/OUTPUT/FILE> <DOMAIN (optional)"; exit 1; }
 [[ -z "$NETWORKID" ]] && { echo "Error: NETWORK ID not specified.\nUsage: getnetworkmembers <APIKEY> <NETWORKID> <PATH/TO/OUTPUT/FILE> <DOMAIN (optional)"; exit 1; }
 [[ -z "$OUTPUTFILE" ]] && { echo "Error: OUTPUTFILE not specified.\nUsage: getnetworkmembers <APIKEY> <NETWORKID> <PATH/TO/OUTPUT/FILE> <DOMAIN (optional)"; exit 1; }
 APIURL="https://my.zerotier.com/api"
-URL=$APIURL/network/$NETWORKID/member
-JSON=`curl -H "Authorization: bearer $APIKEY" $URL`
+URL=$APIURL/network/$NETWORKID
+DOMAIN=`curl -H "Authorization: bearer $APIKEY" $URL | jq -r '.config.name'`.$TLD #networkname.tld
+JSON=`curl -H "Authorization: bearer $APIKEY" $URL/member`
 #debug: echo $JSON | jq > members.json
 ARRAYLENGHT=`echo $JSON | jq '. | length'`
 echo "#Generated at $(date)" > $OUTPUTFILE
@@ -28,7 +30,5 @@ ARRAYLENGHT=$(($ARRAYLENGHT - 1))
 for i in $( seq 0 $ARRAYLENGHT )
     do
     #Loooing through the array of names in the JSON result. At each loop a line will be appended to the outputfile.
-    #A current limitation is that it only prints the first IP address in the ipAssignments array for each member.
-    #The script just need an aditional for-loop to get multiple IPs for a member (multiple IPv4 or IPv4+IPv6). It's on the TODO list.
-    echo $JSON | jq -r '.['$i'].config.ipAssignments[] + "     " + .['$i'].name + "." + "'$DOMAIN'"' >> $OUTPUTFILE
+    echo $JSON | jq -r '.['$i'].config.ipAssignments[] + "_____" + .['$i'].name + "." + "'$DOMAIN'" | ascii_downcase' | sed 's/ /-/g' | sed 's/_/ /g' >> $OUTPUTFILE
     done
