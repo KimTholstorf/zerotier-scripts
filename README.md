@@ -1,4 +1,4 @@
-![Zerotier][logo]
+![Zerotier][logo]{:height="36px" width="36px"}
 # Zerotier scritps
 My collection of scrpts for ZeroTier virtual network.
 
