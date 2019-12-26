@@ -1,5 +1,5 @@
 ![ztlogo][ztlogo]
-# Zerotier scritps
+# Zerotier scipts
 My collection of scrpts for ZeroTier virtual network.
 Nothing fancy just a place for me to dump my stuff before I forget it all.
 
