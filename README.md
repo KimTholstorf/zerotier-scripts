@@ -24,6 +24,7 @@ or just edit the script variables at the top to avoid the need for any runtime p
 ### TODO:
 * Handle shortnames with space (change or remove it)
 * Handle members with more than 1 assigned IP (additional for-loop inside the existing)
+* Use the short name of a network as domain name (and handle spaces in name).
 
 
 [ztlogo]: https://upload.wikimedia.org/wikipedia/en/thumb/f/f1/ZeroTier_Logo.png/150px-ZeroTier_Logo.png
