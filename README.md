@@ -9,13 +9,14 @@ ZeroTier is a distributed SDN switch build atop a encrypted P2P network. [Learn 
 This script pulls the member shortname and IP of all members in a ZeroTier network and outpouts a textfile suited for use with [DNSMASQ](http://www.thekelleys.org.uk/dnsmasq/doc.html). It was created to be used with the `addn-hosts=` option in `dnsmasq.conf`. The textfile is compatible with the /etc/hosts file and can very easaly be modified to just append to /etc/hosts.  
 TIP: DNSMASQ can with the `addn-hosts` point to just a directory. Have `getnetworkmembers` output a seperate file per network in this directory. DNSMASQ will read all files serve DNS requests.
 
+All members of a network must not have space or other non-DNS compatible characters in their shortname. Non compliant members can be renamed from the specific [my.zerotier.com](https://my.zerotier.com/) Network page.
+
 Usage: `getnetworkmembers <APIKEY> <NETWORKID> <PATH/TO/OUTPUT/FILE> <DOMAIN (optional)>`
-or just edit the script variables at the top.
+or just edit the script variables at the top to avoid the need for any runtime parameters.
 * `APIKEY` is your API Access Token from the [my.zerotier.com](https://my.zerotier.com/) Account page.
 * `NETWORKID` is your Network ID from the [my.zerotier.com](https://my.zerotier.com/) Networks page.
 * `OUTPUT` `/path/to/dir/and/filename.zt`
 * `DOMAIN` Optionally specify the domain the addresses sould resolve from - i.e shortname > shortname.domain.tld (webserver01 > webserver01.test.net).
-
 
 
 
