@@ -1,0 +1,39 @@
+#!/bin/bash
+# This script can be used with cloud init or in other senarios where a server/client must automatically join a ZeroTier network.
+# At minimum the Network ID must be specified to join the specified network. If an API Key is also specified this will be used to autorize the member (i.e getting true access and assigned a ZT IP). 
+# echo "Usage: joinnetwork <NETWORKID> <APIKEY>"
+# CAUTION: curl and lq need to be installed as well as zerotier-cli (zerotier-one package).
+# version 0.3
+# by Kim Tholstorf (kim@tholstorf.dk)
+# https://github.com/KimTholstorf/zerotier-scripts/
+# (c)2020 Kim Tholstorf, Some rights reserved
+#
+NETWORKID=$1
+APIKEY=$2
+NETLENGHT=`echo $NETWORKID | awk '{print length}'` #must be 16
+APILENGHT=`echo $APIKEY | awk '{print length}'` #must be 32
+APIURL="https://my.zerotier.com/api"
+MYID=$(zerotier-cli info | cut -d " " -f 3)
+#[[ -n "$NETWORKID" ]] && { echo "Error: A 16-digit ZeroTier NETWORK ID must be specified.\nUsage: $0 <NETWORKID> <APIKEY>"; exit 1; }
+#[[ $NETLENGHT != 16 ]] && { echo "Error: NETWORK ID can only be a 16-digit alphenumeric value\nUsage: $0 <NETWORKID> <APIKEY>"; exit 1; }
+#Already a member?
+if [ -z "$(zerotier-cli listnetworks | grep $NETWORKID)" ]; then
+    echo "Not a member... Joining $NETWORKID"
+    zerotier-cli join "$NETWORKID"
+    while [ -z "$(zerotier-cli listnetworks | grep $NETWORKID | grep ACCESS_DENIED)" ]; do echo "waiting for connection to $NETWORKID"; sleep 1 ; done
+    echo "Joined network, but need authendication"
+    if [ -n "$APIKEY" ]; then 
+        echo "API KEY have been found! Will do auth of new member"
+        JSON=`curl -s -H "Authorization: Bearer $APIKEY" $APIURL/network/$NETWORKID/member/$MYID | jq -c '.config.authorized=true'`
+        curl -s -H "Authorization: Bearer $APIKEY" -d $JSON $APIURL/network/$NETWORKID/member/$MYID
+        #New member - wait for local client to get updated
+        while [ -z "$(zerotier-cli listnetworks | grep $NETWORKID | grep OK)" ]; do echo "waiting for network auth to register";sleep 1 ; done
+        MYIP=`zerotier-cli listnetworks | grep $NETWORKID | grep -o '[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}'`
+        echo "connected to $NETWORKID with ZT assigned IP $MYIP"
+    fi #auth   
+else
+MYIP=`zerotier-cli listnetworks | grep $NETWORKID | grep -o '[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}'`
+[[ -z "$MYIP" ]] && { echo "already a member of $NETWORKID, but not authorized"; exit; }
+echo "already a member with ZT assigned IP $MYIP"
+fi #join
+exit
