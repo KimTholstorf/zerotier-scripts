@@ -5,6 +5,14 @@ Nothing fancy just a place for me to dump my stuff before I forget it all.
 
 ZeroTier is a distributed SDN switch build atop a encrypted P2P network. [Learn more about ZeroTier here](https://www.zerotier.com/about/). You can either use the network controllers [hosted by ZeroTier](https://my.zerotier.com/) or set up your [own standalone network controller](https://key-networks.com/ztncui/) if you're up for the extra effort.
 
+Scripts
+=================
+
+  * [getnetworkmembers](#getnetworkmembers)
+    * [TODO:](#todo)
+  * [joinnetwork](#joinnetwork)
+    * [TODO:](#todo-1)
+
 ## getnetworkmembers
 This script pulls the all the ZeroTier networks you have created or have been shared with you. Each networkname, member shortnames and IPs will be collected and output to a textfile suited for use with [DNSMASQ](http://www.thekelleys.org.uk/dnsmasq/doc.html). It was created to be used with the `addn-hosts=` option in `dnsmasq.conf`. The textfile or this script can fairly easily be modified to just append to /etc/hosts.
 
