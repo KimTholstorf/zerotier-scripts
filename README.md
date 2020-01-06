@@ -42,7 +42,7 @@ The Network ID must be specified to join the specified network. If an API Key is
 
 ***Usage:***
 ```sh
-joinnet <NETWORK ID> <APIKEY (optional)>
+joinnetwork <NETWORK ID> <APIKEY (optional)>
 ```
 or just edit the script variables at the top to avoid the need for any runtime parameters - i.e always joining the same network or if you do not want to specify API key at each run.
 * `NETWORK ID` is the Network ID you wish to join and must be provided by an admin or existing member. Existing members can see the desired Network ID on the [my.zerotier.com](https://my.zerotier.com/) Network page or via the `zeroctier-cli listnetworks` command.
