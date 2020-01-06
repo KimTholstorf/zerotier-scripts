@@ -3,7 +3,7 @@
 # At minimum the Network ID must be specified to join the specified network. If an API Key is also specified this will be used to autorize the member (i.e getting true access and assigned a ZT IP). 
 # echo "Usage: joinnetwork <NETWORKID> <APIKEY>"
 # CAUTION: curl and lq need to be installed as well as zerotier-cli (zerotier-one package).
-# version 0.3
+# version 0.4
 # by Kim Tholstorf (kim@tholstorf.dk)
 # https://github.com/KimTholstorf/zerotier-scripts/
 # (c)2020 Kim Tholstorf, Some rights reserved
@@ -20,14 +20,18 @@ MYID=$(zerotier-cli info | cut -d " " -f 3)
 if [ -z "$(zerotier-cli listnetworks | grep $NETWORKID)" ]; then
     echo "Not a member... Joining $NETWORKID"
     zerotier-cli join "$NETWORKID"
-    while [ -z "$(zerotier-cli listnetworks | grep $NETWORKID | grep ACCESS_DENIED)" ]; do echo "waiting for connection to $NETWORKID"; sleep 1 ; done
-    echo "Joined network, but need authendication"
+    echo -ne "waiting for connection to $NETWORKID"
+    while [ -z "$(zerotier-cli listnetworks | grep $NETWORKID | grep ACCESS_DENIED)" ]; do echo -ne "."; sleep 1 ; done
+    echo -ne '\n'
+    echo "Joined network, but need authentication"
     if [ -n "$APIKEY" ]; then 
-        echo "API KEY have been found! Will do auth of new member"
+        echo "API Token was specified. Will proceed to do auth of new member"
         JSON=`curl -s -H "Authorization: Bearer $APIKEY" $APIURL/network/$NETWORKID/member/$MYID | jq -c '.config.authorized=true'`
-        curl -s -H "Authorization: Bearer $APIKEY" -d $JSON $APIURL/network/$NETWORKID/member/$MYID
+        curl -s -o /dev/null -H "Authorization: Bearer $APIKEY" -d $JSON $APIURL/network/$NETWORKID/member/$MYID
         #New member - wait for local client to get updated
-        while [ -z "$(zerotier-cli listnetworks | grep $NETWORKID | grep OK)" ]; do echo "waiting for network auth to register";sleep 1 ; done
+        echo -ne "waiting for network auth to register on local client"
+        while [ -z "$(zerotier-cli listnetworks | grep $NETWORKID | grep OK)" ]; do echo -ne ".";sleep 1 ; done
+        echo -ne '\n'
         MYIP=`zerotier-cli listnetworks | grep $NETWORKID | grep -o '[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}'`
         echo "connected to $NETWORKID with ZT assigned IP $MYIP"
     fi #auth   
