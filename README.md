@@ -38,7 +38,7 @@ or just edit the script variables at the top to avoid the need for any runtime p
 
 ## joinnetwork
 This script can be used with cloud init or in other senarios where a server/client must automatically join a ZeroTier network.
-The Network ID must be specified to join the specified network. If an API Key is also specified this will be used to autorize the member (i.e getting true access and assigned a ZT IP).
+The Network ID must be specified to join the network. If an API Key is also specified this will be used to autorize the member (i.e getting true access and assigned a ZT IP). The script can also just autorize an existing member that have joined but still haven't been autorized by a network admin.
 
 ***Usage:***
 ```sh
@@ -49,8 +49,8 @@ or just edit the script variables at the top to avoid the need for any runtime p
 * `APIKEY` is your API Access Token from the [my.zerotier.com](https://my.zerotier.com/) Account page. When specified this token will be used to authorize the new member. 
 
 ### TODO:
-* Handle existing members without authorization.
-* Move auth part to a function
+* ~~Handle existing members without authorization.~~ *fixed in 0.5*
+* ~~Move auth part to a function~~ *fixed in 0.5*
 * Check if `NETWORK ID` and `APIKEY` have the corect lenght (basic syntac check)
 * Check if dependencies are installed (curl, jq and zerotier-cli)
 * Move to a pure API driven approach and not rely on installed zerotier-one package
