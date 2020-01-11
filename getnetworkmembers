@@ -3,37 +3,147 @@
 # This script queries a specified Zerotier network and output all member names to a file suitable for /etc/hosts or an alternative hostfile for DNSMASQ
 # echo "Usage: getnetworkmembers <APIKEY> <NETWORKID> <PATH/TO/OUTPUT/FILE>"
 # CAUTION: curl and lq need to be installed.
-# version 0.6
+# version 0.7
 # by Kim Tholstorf (kim@tholstorf.dk)
 # https://github.com/KimTholstorf/zerotier-scripts/
 # (c)2020 Kim Tholstorf, Some rights reserved
-#
-#Change these 2 variables below to avoid the need for any runtime parameters
-APIKEY="$1"
-OUTPUTFILE="$2" #e.g. /etc/dnsmasq.zerotier
-TLD=zt #Top level domain to use with the networkname - networkname.tld
-#DOMAIN="$4" #e.g. example.com
-#[[ -x "$(command -v jq)" ]] && { echo "Error: jq JSON processor is not installed or in PATH. See https://stedolan.github.io/jq/download/"; exit 1; }
-[[ -z "$APIKEY" ]] && { echo "Error: API KEY must specified.\nUsage: getnetworkmembers <APIKEY> <NETWORKID> <PATH/TO/OUTPUT/FILE> <DOMAIN (optional)"; exit 1; }
-[[ -z "$OUTPUTFILE" ]] && { echo "Error: OUTPUTFILE not specified.\nUsage: getnetworkmembers <APIKEY> <NETWORKID> <PATH/TO/OUTPUT/FILE> <DOMAIN (optional)"; exit 1; }
+
+function usage {
+cat <<EOFUSAGE
+This script queries a specified Zerotier network and output all member names to a file suitable for /etc/hosts or an alternative hostfile for DNSMASQ.
+
+  USAGE: $0 --api=<32charalphanum> --output=<PATH/TO/OUTPUT/FILE> [ <other options: see below> ]
+
+OPTIONS:
+    -a=,  --api=                        
+            (32 digit alphanumeric key) Specifies the ZeroTier API Token to be used to query the API for netork and members. 
+            Default behavior is to query all the networks the Token owner are member off. This behavior can be changed 
+            to only query a single specific Network ID with the --network argument.
+ 
+    -u=,  --url=                        
+            (HTTPS) OPTIONAL. URL to a standalone ZeroTier network controller API (Moon). 
+            Default value is https://my.zerotier.com/api as this is the public network controller default configured in every ZeroTier client.
+            This argument is only for those who run a standalone ZeroTier network controller.
+     
+    -n=, --network=
+            (16 digit alphanumeric key) OPTIONAL. Default behavior is to query all available networks.
+            If a Network ID is specifed only this network queried. 
+
+    -d=, --tld=                          
+            (string) OPTIONAL. Top Level Domain to append the networkname in the outputfile - e.g sdn, zero, net, etc...
+            Using the output file for DNS resolving will result in the members having a FQDN of member-shortname.networkname.tld
+            i.e specifying sdn will give the member fileserver in a network named home the FQDN of fileserver.home.sdn. 
+            Default value is ZT resulting in a FQDN of member-shortname.networkname.zt
+            NOTE: Do not use a leading . only letters - i.e ZT and not .ZT
+
+    -o=, --output=
+            (string, filepath) Path to outputfile e.g /etc/dnsmasq.zerotier.
+            NOTE: The file will be overwritten at each run
+            NOTE: Be sure to run ths script with sudo if you are writing to a file outside your oen HOMEDIR. 
+
+    -s=, --silent=
+            (TRUE | FALSE) OPTIONAL. Default value is FALSE and output status to to console. 
+            NOTE: The file will be overwritten at each run
+            NOTE: Be sure to run ths script with sudo if you are writing to a file outside your oen HOMEDIR.
+
+    -v=, --verbose=
+            (TRUE | FALSE) OPTIONAL. Default value is FALSE and only output status to to console. 
+            When set to TRUE the script end with outputting the content of the OITPUTFILE to console.
+
+PREREQUISITES:
+    APPLICATIONS: curl , jq
+
+EOFUSAGE
+} #end usage()
+
+#builtin default values. Do not change these.
+APIKEY=
+NETWORKID=all
+OUTPUTFILE=$PWD/getnetworkmembers.output
+TLD=zt
 APIURL="https://my.zerotier.com/api"
-NETWORKS=`curl -H "Authorization: bearer $APIKEY" $APIURL/network`
-NETWORKLENGHT=`echo $NETWORKS | jq '. | length'`
-echo "#Generated at $(date)" > $OUTPUTFILE
-echo "#Found $NETWORKLENGHT networks" >> $OUTPUTFILE
-NETWORKLENGHT=$(($NETWORKLENGHT - 1))
-for n in $( seq 0 $NETWORKLENGHT )
-    do
-    #Loooing through the array of networks in the NETWORKS data.
-    NETWORKID=`echo $NETWORKS | jq -r '.['$n'].id'`
-    DOMAIN=`echo $NETWORKS | jq -r '.['$n'].config.name'`.$TLD #networkname.tld
-    JSON=`curl -H "Authorization: bearer $APIKEY" $APIURL/network/$NETWORKID/member`
+SILENT=false
+VERBOSE=false
+NETWORKLENGHT=0
+
+args=()
+while (( $# > 0 )); do
+    arg="$1"
+    arg_key="${arg%%=*}"
+    arg_data="${arg#*=}"
+    case $arg_key in
+        --help|-h)      usage; exit 0               ;;
+        --api|-a)       APIKEY=${arg_data}          ;;
+        --url|-u)       APIURL=${arg_data}          ;;
+        --network|-n)   NETWORKID=${arg_data}       ;;
+        --tld|-d)       TLD=${arg_data}             ;;
+        --output|-o)    OUTPUTFILE="${arg_data}"    ;;
+        --silent|-s)    SILENT="${arg_data}"        ;;
+        --verbose|-v)   VERBOSE="${arg_data}"       ;;                
+    esac
+    shift
+done
+#set -- "${args[@]}"
+
+#Uncomment and change any of these variables below to overule args
+#APIKEY="32xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+#NETWORKID="16xxxxxxxxxxxxxx"
+#OUTPUTFILE="/etc/dnsmasq.zerotier"
+#TLD=zt
+#SILENT=false
+#VERBOSE=false
+#Uncomment and change any of these variables above to overule args
+
+TLD=`echo $TLD | awk '{print tolower($0)}'`
+SILENT=`echo $SILENT | awk '{print tolower($0)}'`
+VERBOSE=`echo $VERBOSE | awk '{print tolower($0)}'`
+
+#check if arguments are set or dependencies are installed 
+[[ ! -x "$(command -v jq)" ]] && { echo "Error: jq JSON processor is not installed or in PATH. See https://stedolan.github.io/jq/download/"; exit 1; }
+[[ ! -x "$(command -v curl)" ]] && { echo "Error: curl commandline tool is not installed or in PATH"; exit 1; }
+[[ -z "$APIKEY" ]] && { echo "Error: API KEY must specified."; usage; exit 1; }
+[[ -z "$OUTPUTFILE" ]] && { echo "Error: OUTPUTFILE not specified."; usage; exit 1; }
+[[ ! $(echo $APIKEY | awk '{print length}') == 32 ]] && { echo "Syntax Error: API Token can only be a 32-digit alphenumeric value"; exit 1; }
+[[ ! $NETWORKID == all && ! $(echo $NETWORKID | awk '{print length}') == 16 ]] && { echo "Syntax Error: Network ID can only be a 16-digit alphenumeric value"; exit 1; }
+# end argument check
+echo "#Generated at $(date)" > $OUTPUTFILE #create outputfile
+
+if [ $NETWORKID==all ]; then
+    NETWORKS=`curl -s -H "Authorization: bearer $APIKEY" $APIURL/network`
+    NETWORKLENGHT=`echo $NETWORKS | jq '. | length'`
+    echo "#Found $NETWORKLENGHT networks" >> $OUTPUTFILE
+    NETWORKLENGHT=$(($NETWORKLENGHT - 1))
+    for n in $( seq 0 $NETWORKLENGHT )
+        do
+        #Loooing through the array of networks in the NETWORKS data.
+        NETWORKID=`echo $NETWORKS | jq -r '.['$n'].id'`
+        DOMAIN=`echo $NETWORKS | jq -r '.['$n'].config.name'`.$TLD #networkname.tld
+        JSON=`curl -s -H "Authorization: bearer $APIKEY" $APIURL/network/$NETWORKID/member`
+        ARRAYLENGHT=`echo $JSON | jq '. | length'`
+        echo "#NetworkID $NETWORKID have $ARRAYLENGHT members" >> $OUTPUTFILE
+        ARRAYLENGHT=$(($ARRAYLENGHT - 1))
+        for i in $( seq 0 $ARRAYLENGHT )
+            do
+            #Loooing through the array of names in the JSON data. At each loop a line will be appended to the outputfile.
+            echo $JSON | jq -r '.['$i'].config.ipAssignments[] + "#####" + .['$i'].name + "." + "'$DOMAIN'" | ascii_downcase' | sed 's/ /-/g' | sed 's/#/ /g' >> $OUTPUTFILE
+            done #end ARRYLENGHT members
+        done #end NETWORKLENGHT networks
+else
+    DOMAIN=`curl -s -H "Authorization: bearer $APIKEY" $APIURL/network/$NETWORKID | jq -r '.config.name'`.$TLD #networkname.tld
+    JSON=`curl -s -H "Authorization: bearer $APIKEY" $APIURL/network/$NETWORKID/member`
     ARRAYLENGHT=`echo $JSON | jq '. | length'`
-    echo "#NetworkID $NETWORKID have $ARRAYLENGHT members" >> $OUTPUTFILE
+    echo "#NOTE: --network argument have been specified. Only $NETWORKID will be put in outputfile" > $OUTPUTFILE
+    echo "#NetworkID is $NETWORKID and have $ARRAYLENGHT members" >> $OUTPUTFILE
     ARRAYLENGHT=$(($ARRAYLENGHT - 1))
     for i in $( seq 0 $ARRAYLENGHT )
         do
-        #Loooing through the array of names in the JSON data. At each loop a line will be appended to the outputfile.
-        echo $JSON | jq -r '.['$i'].config.ipAssignments[] + "#####" + .['$i'].name + "." + "'$DOMAIN'" | ascii_downcase' | sed 's/ /-/g' | sed 's/#/ /g' >> $OUTPUTFILE
-        done #ARRYLENGHT members
-    done #NETWORKLENGHT networks
+        #Loooing through the array of names in the JSON result. At each loop a line will be appended to the outputfile.
+        echo $JSON | jq -r '.['$i'].config.ipAssignments[] + "#####" + .['$i'].name + "." + "'$DOMAIN'" | ascii_downcase' | sed 's/ /-/g' | sed 's/_/ /g' >> $OUTPUTFILE
+        done
+fi
+
+# output at end of script (norman, silent, verbose)
+[[ $SILENT == true ]] && { exit 0; }
+echo "Found $(($NETWORKLENGHT + 1)) network(s)"
+echo "Output created in $OUTPUTFILE"
+[[ $VERBOSE == true ]] && { cat $OUTPUTFILE; exit 0; }
