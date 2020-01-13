@@ -12,7 +12,7 @@ Scripts:
 ---
 
 ## getnetworkmembers
-This script pulls the all the ZeroTier networks you have created or have been shared with you. Each networkname, member shortnames and IPs will be collected and output to a textfile suited for use with [DNSMASQ](http://www.thekelleys.org.uk/dnsmasq/doc.html). It was created to be used with the `addn-hosts=` option in `dnsmasq.conf`. The textfile or this script can fairly easily be modified to just append to /etc/hosts.
+This script pulls the all the ZeroTier networks you have created or have been shared with you. Each networkname, member shortnames and IPs will be collected and output to a textfile suited for use with [DNSMASQ](http://www.thekelleys.org.uk/dnsmasq/doc.html). It was created to be used with the `addn-hosts=` option in `dnsmasq.conf`. The textfile or this script can fairly easily be modified to just append to /etc/hosts. There is an option to only query a specific Network ID instead of all.
 
 ZeroTier shortnames will be handled as hostnames so it is important that all members of a network must not have non-DNS compatible characters in their shortname. This script will replace spaces in shortnames with a `-`. Non-compliant members can be renamed from the specific [my.zerotier.com](https://my.zerotier.com/) Network page.
 
@@ -22,7 +22,7 @@ getnetworkmembers --api=<APIKEY> --output=<PATH/TO/OUTPUT/FILE>
 
 OPTIONS:
     -a=,  --api=                        
-            (32 digit alphanumeric key) Specifies the ZeroTier API Token to be used to query the API for netork and members. 
+            (32 digit alphanumeric key) Specifies the ZeroTier API Token (account) to query the API for netorks and members. 
             Default behavior is to query all the networks the Token owner are member off. This behavior can be changed 
             to only query a single specific Network ID with the --network argument.
  
@@ -49,21 +49,19 @@ OPTIONS:
 
     -s=, --silent=
             (TRUE | FALSE) OPTIONAL. Default value is FALSE and output status to to console. 
-            NOTE: The file will be overwritten at each run
-            NOTE: Be sure to run ths script with sudo if you are writing to a file outside your oen HOMEDIR.
+            NOTE: --silent can't be combined with --verbose. It's either or.
 
     -v=, --verbose=
             (TRUE | FALSE) OPTIONAL. Default value is FALSE and only output status to to console. 
-            When set to TRUE the script end with outputting the content of the OITPUTFILE to console.
+            NOTE: --verbose can't be combined with --silent. It's either or.
 
 PREREQUISITES:
     APPLICATIONS: curl , jq
-    
 ```
-or alternatively just edit the script variables in the section at line 88 to avoid the need for any runtime parameters.
+or alternatively just edit the script variables in the section at line 87 to avoid the need for any runtime parameters.
 * `APIKEY` is your API Access Token from the [my.zerotier.com](https://my.zerotier.com/) Account page.
 * `OUTPUT` /path/to/dir/and/filename.zt
-* `TLD` is the top-level domain that will be added to create a FQDN out of the networkname and shortname - i.e shortname.networkname.tld (server.office.zt).
+* `TLD` is the top-level domain that will be added to create a FQDN out of the networkname and shortname - i.e membwer-shortname.networkname.tld (server.office.zt).
 
 ### TODO:
 * ~~Handle shortnames with space (change or remove it).~~ *fixed in 0.5: spaces will be replaced with a "-"*
@@ -75,8 +73,8 @@ or alternatively just edit the script variables in the section at line 88 to avo
 * ~~Some input validation of API token and Network ID args.~~ *fixed in 0.7*
 * ~~Check if dependencies/tools are installed.~~ *fixed in 0.7*
 * ~~Proper --help and usage output arguments.~~ *fixed in 0.7*
-* ~~Handle auguments in a variable order.~~ *fixed in 0.7* 
-* Handle empty member shortnames to avoid a FQDN without a hostname `.networkname.tld`
+* ~~Handle auguments in a random order.~~ *fixed in 0.7* 
+* ~~Handle empty member shortnames to avoid a FQDN without a hostname `.networkname.tld`~~ *fixed in 0.8*
 
 ---
 
@@ -86,18 +84,38 @@ The Network ID must be specified to join the network. If an API Key is also spec
 
 ***Usage:***
 ```sh
-joinnetwork <NETWORK ID> <APIKEY (optional)>
+joinnetwork --api=<32charalphanum> --network=<32charalphanum>
+
+OPTIONS:
+    -a=,  --api=                        
+            (32 digit alphanumeric key) OPTIONAL. Specifies the ZeroTier API Token (account) to authorize the member - i.e getting true access and assigned a ZT IP. 
+            NOTE: If not specified the member will be joined to the network, but not able to use this access until authorized by an admin or by running this script with the --api option. 
+
+    -u=,  --url=                        
+            (HTTPS) OPTIONAL. URL to a standalone ZeroTier network controller API (Moon). 
+            Default value is https://my.zerotier.com/api as this is the public network controller default configured in every ZeroTier client.
+            NOTE: This argument is only for those who run a standalone ZeroTier network controller.
+     
+    -n=, --network=
+            (16 digit alphanumeric key) REQUIRED. The ZeroTier network (Network ID) to join.
+            NOTE: A Network ID must be specified.  
+
+PREREQUISITES:
+    APPLICATIONS: zerotier-one , curl , jq
 ```
-or just edit the script variables at the top to avoid the need for any runtime parameters - i.e always joining the same network or if you do not want to specify API key at each run.
+or alternatively just edit the script variables in the section at line 62 to avoid the need for any runtime parameters.
 * `NETWORK ID` is the Network ID you wish to join and must be provided by an admin or existing member. Existing members can see the desired Network ID on the [my.zerotier.com](https://my.zerotier.com/) Network page or via the `zeroctier-cli listnetworks` command.
 * `APIKEY` is your API Access Token from the [my.zerotier.com](https://my.zerotier.com/) Account page. When specified this token will be used to authorize the new member. 
 
 ### TODO:
 * ~~Handle existing members without authorization.~~ *fixed in 0.5*
 * ~~Move auth part to a function~~ *fixed in 0.5*
-* Check if `NETWORK ID` and `APIKEY` have the corect lenght (basic syntac check)
-* Check if dependencies are installed (curl, jq and zerotier-cli)
-* Move to a pure API driven approach and not rely on installed zerotier-one package
+* ~~Check if `NETWORK ID` and `APIKEY` have the corect lenght (basic syntac check)~~ *fixed in 0.6*
+* ~~Check if dependencies are installed (curl, jq and zerotier-cli)~~ *fixed in 0.6*
+* ~~Some input validation of API token and Network ID args~~ *fixed in 0.6*
+* ~~Proper --help and usage output arguments~~ *fixed in 0.6*
+* ~~Handle auguments in a random order~~ *fixed in 0.6*
+* Move to a pure API driven approach and rely less on a local installed zerotier-one package
 
 ---
 
