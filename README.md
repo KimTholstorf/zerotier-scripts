@@ -18,7 +18,7 @@ ZeroTier shortnames will be handled as hostnames so it is important that all mem
 
 ***Usage:***
 ```sh
-getnetworkmembers --api=<APIKEY> --output=<PATH/TO/OUTPUT/FILE>
+getnetworkmembers --api=<32charalphanum> --output=<path/to/output/file>
 
 OPTIONS:
     -a=,  --api=                        
@@ -84,7 +84,7 @@ The Network ID must be specified to join the network. If an API Key is also spec
 
 ***Usage:***
 ```sh
-joinnetwork --api=<32charalphanum> --network=<32charalphanum>
+joinnetwork --api=<32charalphanum> --network=<16charalphanum>
 
 OPTIONS:
     -a=,  --api=                        
