@@ -1,22 +1,22 @@
   
 #!/bin/bash
-# This script queries a specified Zerotier network and output all member names to a file suitable for /etc/hosts or an alternative hostfile for DNSMASQ
-# echo "Usage: getnetworkmembers <APIKEY> <NETWORKID> <PATH/TO/OUTPUT/FILE>"
+# This script queries a specified Zerotier account and output all member names to a file suitable for /etc/hosts or an alternative hostfile for DNSMASQ.
+# For usage and prerequisites, se below or run the script with the --help option.
 # CAUTION: curl and lq need to be installed.
-# version 0.7
+# version 0.8
 # by Kim Tholstorf (kim@tholstorf.dk)
 # https://github.com/KimTholstorf/zerotier-scripts/
 # (c)2020 Kim Tholstorf, Some rights reserved
 
 function usage {
 cat <<EOFUSAGE
-This script queries a specified Zerotier network and output all member names to a file suitable for /etc/hosts or an alternative hostfile for DNSMASQ.
+This script queries a specified Zerotier account and output all member names to a file suitable for /etc/hosts or an alternative hostfile for DNSMASQ.
 
   USAGE: $0 --api=<32charalphanum> --output=<PATH/TO/OUTPUT/FILE> [ <other options: see below> ]
 
 OPTIONS:
     -a=,  --api=                        
-            (32 digit alphanumeric key) Specifies the ZeroTier API Token to be used to query the API for netork and members. 
+            (32 digit alphanumeric key) Specifies the ZeroTier API Token (account) to query the API for netorks and members. 
             Default behavior is to query all the networks the Token owner are member off. This behavior can be changed 
             to only query a single specific Network ID with the --network argument.
  
@@ -43,12 +43,11 @@ OPTIONS:
 
     -s=, --silent=
             (TRUE | FALSE) OPTIONAL. Default value is FALSE and output status to to console. 
-            NOTE: The file will be overwritten at each run
-            NOTE: Be sure to run ths script with sudo if you are writing to a file outside your oen HOMEDIR.
+            NOTE: --silent can't be combined with --verbose. It's either or.
 
     -v=, --verbose=
             (TRUE | FALSE) OPTIONAL. Default value is FALSE and only output status to to console. 
-            When set to TRUE the script end with outputting the content of the OITPUTFILE to console.
+            NOTE: --verbose can't be combined with --silent. It's either or.
 
 PREREQUISITES:
     APPLICATIONS: curl , jq
@@ -108,7 +107,7 @@ VERBOSE=`echo $VERBOSE | awk '{print tolower($0)}'`
 # end argument check
 echo "#Generated at $(date)" > $OUTPUTFILE #create outputfile
 
-if [ $NETWORKID==all ]; then
+if [ $NETWORKID == all ]; then #if/else to either go through all Networks (default) or just the specified Network ID
     NETWORKS=`curl -s -H "Authorization: bearer $APIKEY" $APIURL/network`
     NETWORKLENGHT=`echo $NETWORKS | jq '. | length'`
     echo "#Found $NETWORKLENGHT networks" >> $OUTPUTFILE
@@ -125,25 +124,39 @@ if [ $NETWORKID==all ]; then
         for i in $( seq 0 $ARRAYLENGHT )
             do
             #Loooing through the array of names in the JSON data. At each loop a line will be appended to the outputfile.
-            echo $JSON | jq -r '.['$i'].config.ipAssignments[] + "#####" + .['$i'].name + "." + "'$DOMAIN'" | ascii_downcase' | sed 's/ /-/g' | sed 's/#/ /g' >> $OUTPUTFILE
+            #If member shortname is blank use member ID as name
+            TEST=`echo $JSON | jq -r '.[0].name'`
+            if [ -z $TEST ]; then
+                echo $JSON | jq -r '.['$i'].config.ipAssignments[] + "#####" + .['$i'].config.address + "." + "'$DOMAIN'" | ascii_downcase' | sed 's/ /-/g' | sed 's/#/ /g' >> $OUTPUTFILE
+            else
+                echo $JSON | jq -r '.['$i'].config.ipAssignments[] + "#####" + .['$i'].name + "." + "'$DOMAIN'" | ascii_downcase' | sed 's/ /-/g' | sed 's/#/ /g' >> $OUTPUTFILE
+            fi            
             done #end ARRYLENGHT members
         done #end NETWORKLENGHT networks
 else
     DOMAIN=`curl -s -H "Authorization: bearer $APIKEY" $APIURL/network/$NETWORKID | jq -r '.config.name'`.$TLD #networkname.tld
     JSON=`curl -s -H "Authorization: bearer $APIKEY" $APIURL/network/$NETWORKID/member`
     ARRAYLENGHT=`echo $JSON | jq '. | length'`
-    echo "#NOTE: --network argument have been specified. Only $NETWORKID will be put in outputfile" > $OUTPUTFILE
+    echo "#NOTE: --network argument was specified. Only $NETWORKID will be written to this file" >> $OUTPUTFILE
     echo "#NetworkID is $NETWORKID and have $ARRAYLENGHT members" >> $OUTPUTFILE
     ARRAYLENGHT=$(($ARRAYLENGHT - 1))
     for i in $( seq 0 $ARRAYLENGHT )
         do
         #Loooing through the array of names in the JSON result. At each loop a line will be appended to the outputfile.
-        echo $JSON | jq -r '.['$i'].config.ipAssignments[] + "#####" + .['$i'].name + "." + "'$DOMAIN'" | ascii_downcase' | sed 's/ /-/g' | sed 's/_/ /g' >> $OUTPUTFILE
-        done
+        #If member shortname is blank use member ID as name
+        TEST=`echo $JSON | jq -r '.[0].name'`
+        if [ -z $TEST ]; then
+            echo $JSON | jq -r '.['$i'].config.ipAssignments[] + "#####" + .['$i'].config.address + "." + "'$DOMAIN'" | ascii_downcase' | sed 's/ /-/g' | sed 's/#/ /g' >> $OUTPUTFILE
+        else
+            echo $JSON | jq -r '.['$i'].config.ipAssignments[] + "#####" + .['$i'].name + "." + "'$DOMAIN'" | ascii_downcase' | sed 's/ /-/g' | sed 's/#/ /g' >> $OUTPUTFILE
+        fi
+        done #end arraylenght network id
 fi
 
-# output at end of script (norman, silent, verbose)
+# dictate output at end of script (normal (default), silent, verbose or a combination)
+[[ $SILENT == true && $VERBOSE == true ]] && { cat $OUTPUTFILE; exit 0; }
 [[ $SILENT == true ]] && { exit 0; }
+[[ ! $NETWORKID == all ]] && { echo "NOTE: --network argument was specified. Only $NETWORKID was written to $OUTPUTFILE"; }
 echo "Found $(($NETWORKLENGHT + 1)) network(s)"
 echo "Output created in $OUTPUTFILE"
 [[ $VERBOSE == true ]] && { cat $OUTPUTFILE; exit 0; }
