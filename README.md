@@ -12,9 +12,9 @@ Scripts:
 ---
 
 ## getnetworkmembers
-This script pulls the all the ZeroTier networks you have created or have been shared with you. Each networkname, member shortnames and IPs will be collected and output to a textfile suited for use with [DNSMASQ](http://www.thekelleys.org.uk/dnsmasq/doc.html). It was created to be used with the `addn-hosts=` option in `dnsmasq.conf`. The textfile or this script can fairly easily be modified to just append to /etc/hosts. There is an option to only query a specific Network ID instead of all.
+This script pulls the all the ZeroTier networks you have created or have been shared with you. Each networkname, member shortnames and IPs will be collected and output to a textfile suited for use with [DNSMASQ](http://www.thekelleys.org.uk/dnsmasq/doc.html). It was created to be used with the `addn-hosts=` option in `dnsmasq.conf` ([see an example here](https://github.com/KimTholstorf/zerotier-scripts/blob/master/dnsmasq/dnsmasq.conf)). The textfile or this script can also fairly easily be modified to just append to /etc/hosts. There is an option to only query a specific Network ID instead of all.
 
-ZeroTier shortnames will be handled as hostnames so it is important that all members of a network must not have non-DNS compatible characters in their shortname. This script will replace spaces in shortnames with a `-`. Non-compliant members can be renamed from the specific [my.zerotier.com](https://my.zerotier.com/) Network page.
+ZeroTier shortnames will be used as hostnames so it is important that all members of a network must not have non-DNS compatible characters in their shortname. This script will replace spaces in shortnames with a `-`. Non-compliant members can be renamed from the specific [my.zerotier.com](https://my.zerotier.com/) Network page. Members with empty shortnames will be named after their unique Member ID (10-digit alphanumeric value).
 
 ***Usage:***
 ```sh
@@ -52,7 +52,8 @@ OPTIONS:
             NOTE: --silent can't be combined with --verbose. It's either or.
 
     -v=, --verbose=
-            (TRUE | FALSE) OPTIONAL. Default value is FALSE and only output status to to console. 
+            (TRUE | FALSE) OPTIONAL. Default value is FALSE and only output status to to console.
+            This vill output the content of the outputfile to the console. 
             NOTE: --verbose can't be combined with --silent. It's either or.
 
 PREREQUISITES:
