@@ -1,9 +1,8 @@
-  
 #!/bin/bash
 # This script queries a specified Zerotier account and output all member names to a file suitable for /etc/hosts or an alternative hostfile for DNSMASQ.
 # For usage and prerequisites, se below or run the script with the --help option.
 # CAUTION: curl and lq need to be installed.
-# version 0.8
+# version 0.9
 # by Kim Tholstorf (kim@tholstorf.dk)
 # https://github.com/KimTholstorf/zerotier-scripts/
 # (c)2020 Kim Tholstorf, Some rights reserved
@@ -12,7 +11,7 @@ function usage {
 cat <<EOFUSAGE
 This script queries a specified Zerotier account and output all member names to a file suitable for /etc/hosts or an alternative hostfile for DNSMASQ.
 
-  USAGE: $0 --api=<32charalphanum> --output=<PATH/TO/OUTPUT/FILE> [ <other options: see below> ]
+  USAGE: $0 --api=<32charalphanum> --output=<path/to/output/file> [ <other options: see below> ]
 
 OPTIONS:
     -a=,  --api=                        
@@ -132,6 +131,7 @@ if [ $NETWORKID == all ]; then #if/else to either go through all Networks (defau
                 echo $JSON | jq -r '.['$i'].config.ipAssignments[] + "#####" + .['$i'].name + "." + "'$DOMAIN'" | ascii_downcase' | sed 's/ /-/g' | sed 's/#/ /g' >> $OUTPUTFILE
             fi            
             done #end ARRYLENGHT members
+        NETWORKID=all #reset NETOWRKID variable to later dictate output
         done #end NETWORKLENGHT networks
 else
     DOMAIN=`curl -s -H "Authorization: bearer $APIKEY" $APIURL/network/$NETWORKID | jq -r '.config.name'`.$TLD #networkname.tld
@@ -156,7 +156,7 @@ fi
 # dictate output at end of script (normal (default), silent, verbose or a combination)
 [[ $SILENT == true && $VERBOSE == true ]] && { cat $OUTPUTFILE; exit 0; }
 [[ $SILENT == true ]] && { exit 0; }
-[[ ! $NETWORKID == all ]] && { echo "NOTE: --network argument was specified. Only $NETWORKID was written to $OUTPUTFILE"; }
+[[ "$NETWORKID" != "all" ]] && { echo "NOTE: --network argument was specified. Only $NETWORKID was written to $OUTPUTFILE"; }
 echo "Found $(($NETWORKLENGHT + 1)) network(s)"
 echo "Output created in $OUTPUTFILE"
 [[ $VERBOSE == true ]] && { cat $OUTPUTFILE; exit 0; }
