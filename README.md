@@ -12,9 +12,9 @@ Scripts:
 ---
 
 ## getnetworkmembers
-This script pulls the all the ZeroTier networks you have created or have been shared with you. Each networkname, member shortnames and IPs will be collected and output to a textfile suited for use with [DNSMASQ](http://www.thekelleys.org.uk/dnsmasq/doc.html). It was created to be used with the `addn-hosts=` option in `dnsmasq.conf` ([see an example here](https://github.com/KimTholstorf/zerotier-scripts/blob/master/dnsmasq/dnsmasq.conf)). The textfile or this script can also fairly easily be modified to just append to /etc/hosts. There is an option to only query a specific Network ID instead of all.
+This script pulls the all the ZeroTier networks you have created or networks shared with you. Each networkname, device member shortnames and IPs will be collected and output to a textfile suited for use with [DNSMASQ](http://www.thekelleys.org.uk/dnsmasq/doc.html). It can be be used with the `addn-hosts=` option in `dnsmasq.conf` ([see an example here](https://github.com/KimTholstorf/zerotier-scripts/blob/master/dnsmasq/dnsmasq.conf)). The textfile or this script can also fairly easily be modified to append to /etc/hosts. There is also an option to only query a specific Network ID instead of all available.
 
-ZeroTier shortnames will be used as hostnames so it is important that all members of a network must not have non-DNS compatible characters in their shortname. This script will replace spaces in shortnames with a `-`. Non-compliant members can be renamed from the specific [my.zerotier.com](https://my.zerotier.com/) Network page. Members with empty shortnames will be named after their unique Member ID (10-digit alphanumeric value).
+ZeroTier shortnames will be used as hostnames so it is important that all members of a network only use non-DNS compatible characters in their shortname. This script will replace spaces in shortnames with a `-`. Non-compliant members can be renamed from the specific [my.zerotier.com](https://my.zerotier.com/) Network page. Members with empty shortnames will be named after their unique Member ID (10-digit alphanumeric value).
 
 ***Usage:***
 ```sh
@@ -23,7 +23,7 @@ getnetworkmembers --api=<32charalphanum> --output=<path/to/output/file>
 OPTIONS:
     -a=,  --api=                        
             (32 digit alphanumeric key) Specifies the ZeroTier API Token (account) to query the API for netorks and members. 
-            Default behavior is to query all the networks the Token owner are member off. This behavior can be changed 
+            Default behavior is to query all the networks the Token owner are member off or networks shared with. This behavior can be changed 
             to only query a single specific Network ID with the --network argument.
  
     -u=,  --url=                        
@@ -80,17 +80,17 @@ or alternatively just edit the script variables in the section at line 87 to avo
 ---
 
 ## joinnetwork
-This script can be used with cloud init or in other senarios where a server/client must automatically join a ZeroTier network.
-The Network ID must be specified to join the network. If an API Key is also specified this will be used to autorize the member (i.e getting true access and assigned a ZT IP). The script can also just autorize an existing member that have joined but still haven't been autorized by a network admin.
+This script will automatically join a new device (member) to a ZeroTier network. It can be used with cloud-init or during other deployment tools.
+The Network ID must be specified to join the network. If an API Token is also specified this will be used to autorize the member (i.e getting true access and assigned a ZT IP). The script can also just autorize an existing member that have joined but still haven't been autorized by a network admin.
 
 ***Usage:***
 ```sh
-joinnetwork --api=<32charalphanum> --network=<16charalphanum>
+joinnetwork --network=<32charalphanum> --api=<32charalphanum> [ <other options: see below> ]
 
 OPTIONS:
     -a=,  --api=                        
-            (32 digit alphanumeric key) OPTIONAL. Specifies the ZeroTier API Token (account) to authorize the member - i.e getting true access and assigned a ZT IP. 
-            NOTE: If not specified the member will be joined to the network, but not able to use this access until authorized by an admin or by running this script with the --api option. 
+            (32 digit alphanumeric key) OPTIONAL. Specifies the ZeroTier API Token (account) to authorize the new device member (i.e allow traffic with other members and get an IP assigned).
+            NOTE: If not specified the device will still be joined to the network, but not able to communitate with other devices until authorized by an admin or by running this script with the --api option. 
 
     -u=,  --url=                        
             (HTTPS) OPTIONAL. URL to a standalone ZeroTier network controller API (Moon). 
@@ -100,6 +100,19 @@ OPTIONS:
     -n=, --network=
             (16 digit alphanumeric key) REQUIRED. The ZeroTier network (Network ID) to join.
             NOTE: A Network ID must be specified.  
+    
+    -m=,  --member=                        
+            (STRING) OPTIONAL. RECOMENDED. Configures the device member shortname used by this client for the specific ZeroTier network. 
+            Default action is use the unique device Node ID (10-digit alphanumeric) as member shortname. Use this option to set a more recognizable value.
+            NOTE: Name must only be enclosed in quotes (" ") if any spaces are used. . Though spaces will for DNS compability be replaced with dashes (-).
+                  This setting is a object value stored inside each ZeroTier network. As a client its therefore possible to use a diffrent short name inside each network.
+                  Joining via the zerotier-cli utility will not configure any shortname and leave an empty value. This can cause problems if pulling data for DNS use.
+ 
+   -d=,  --description=                        
+            (STRING) OPTIONAL. RECOMENDED. Configures the device member description field for this client.
+            NOTE: Discription must only be enclosed in quotes (" ") if any spaces are used. 
+                  This setting is a object value stored inside each ZeroTier network. As a client its therefore possible to use a diffrent description field inside each network.
+                  Joining via the zerotier-cli utility will not configure any description and leave an empty value.
 
 PREREQUISITES:
     APPLICATIONS: zerotier-one , curl , jq
@@ -116,6 +129,7 @@ or alternatively just edit the script variables in the section at line 62 to avo
 * ~~Some input validation of API token and Network ID args~~ *fixed in 0.6*
 * ~~Proper --help and usage output arguments~~ *fixed in 0.6*
 * ~~Handle auguments in a random order~~ *fixed in 0.6*
+* ~~Add option to set device member shortname (idea from [RobertJensen](https://github.com/rhjensen79))~~ *fixed in 0.7*
 * Move to a pure API driven approach and rely less on a local installed zerotier-one package
 
 ---
