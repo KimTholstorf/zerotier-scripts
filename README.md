@@ -59,7 +59,7 @@ OPTIONS:
 PREREQUISITES:
     APPLICATIONS: curl , jq
 ```
-or alternatively just edit the script variables in the section at line 87 to avoid the need for any runtime parameters.
+or alternatively just edit the script variables in the section at line 86 to avoid the need for any runtime parameters.
 * `APIKEY` is your API Access Token from the [my.zerotier.com](https://my.zerotier.com/) Account page.
 * `OUTPUT` /path/to/dir/and/filename.zt
 * `TLD` is the top-level domain that will be added to create a FQDN out of the networkname and shortname - i.e membwer-shortname.networkname.tld (server.office.zt).
@@ -117,7 +117,7 @@ OPTIONS:
 PREREQUISITES:
     APPLICATIONS: zerotier-one , curl , jq
 ```
-or alternatively just edit the script variables in the section at line 62 to avoid the need for any runtime parameters.
+or alternatively just edit the script variables in the section at line 78 to avoid the need for any runtime parameters.
 * `NETWORK ID` is the Network ID you wish to join and must be provided by an admin or existing member. Existing members can see the desired Network ID on the [my.zerotier.com](https://my.zerotier.com/) Network page or via the `zeroctier-cli listnetworks` command.
 * `APIKEY` is your API Access Token from the [my.zerotier.com](https://my.zerotier.com/) Account page. When specified this token will be used to authorize the new member. 
 
