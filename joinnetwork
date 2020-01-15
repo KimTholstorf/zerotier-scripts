@@ -1,26 +1,25 @@
 #!/bin/bash
-# This script will automatically join a new member (client) to a ZeroTier network. Can be used with cloud init or during other deployment tools.
+# This script will automatically join a new member (device) to a ZeroTier network. Can be used with cloud-init or during other deployment tools.
 # At minimum the Network ID must be specified to join the specified network. If an API Key is also specified this will be used to autorize the member (i.e getting true access and assigned a ZT IP).
-# If the client is already a member but not autorized running the script specifiing a API Key will just autorize the member.
+# If the device is already a member but not autorized running the script specifiing a API Key will just autorize the member.
 #
 # For usage and prerequisites se below or run the script with the --help option.
 # CAUTION: curl and lq need to be installed as well as zerotier-cli (zerotier-one package).
-# version 0.6
+# version 0.7
 # by Kim Tholstorf (kim@tholstorf.dk)
 # https://github.com/KimTholstorf/zerotier-scripts/
 # (c)2020 Kim Tholstorf, Some rights reserved
 #
 function usage {
 cat <<EOFUSAGE
-This script will automatically join a new member (client) to a ZeroTier network. Can be used with cloud init or during other deployment tools.
+This script will automatically join a new device (member) to a ZeroTier network. Can be used with cloud-init or during other deployment tools.
 
-
-  USAGE: $0 --network=<32charalphanum> --api=<32charalphanum> [ <other options: see below> ]
+USAGE: $0 --network=<32charalphanum> --api=<32charalphanum> [ <other options: see below> ]
 
 OPTIONS:
     -a=,  --api=                        
-            (32 digit alphanumeric key) OPTIONAL. Specifies the ZeroTier API Token (account) to authorize the member - i.e getting true access and assigned a ZT IP. 
-            NOTE: If not specified the member will be joined to the network, but not able to use this access until authorized by an admin or by running this script with the --api option. 
+            (32 digit alphanumeric key) OPTIONAL. Specifies the ZeroTier API Token (account) to authorize the device - i.e getting true access and assigned a ZT IP. 
+            NOTE: If not specified the device will still be joined to the network, but not able to communitate with other devices until authorized by an admin or by running this script with the --api option. 
 
     -u=,  --url=                        
             (HTTPS) OPTIONAL. URL to a standalone ZeroTier network controller API (Moon). 
@@ -30,6 +29,19 @@ OPTIONS:
     -n=, --network=
             (16 digit alphanumeric key) REQUIRED. The ZeroTier network (Network ID) to join.
             NOTE: A Network ID must be specified.  
+    
+    -m=,  --member=                        
+            (STRING) OPTIONAL. RECOMENDED. Configures the device member shortname used by this client for the specific ZeroTier network. 
+            Default action is use the unique device Node ID (10-digit alphanumeric) as member shortname. Use this option to set a more recognizable value.
+            NOTE: Name must only be enclosed in quotes (" ") if any spaces are used. . Though spaces will for DNS compability be replaced with dashes (-).
+                  This setting is a object value stored inside each ZeroTier network. As a client its therefore possible to use a diffrent short name inside each network.
+                  Joining via the zerotier-cli utility will not configure any shortname and leave an empty value. This can cause problems if pulling data for DNS use.
+ 
+   -d=,  --description=                        
+            (STRING) OPTIONAL. RECOMENDED. Configures the device member description field for this client.
+            NOTE: Discription must only be enclosed in quotes (" ") if any spaces are used. 
+                  This setting is a object value stored inside each ZeroTier network. As a client its therefore possible to use a diffrent description field inside each network.
+                  Joining via the zerotier-cli utility will not configure any description and leave an empty value.
 
 PREREQUISITES:
     APPLICATIONS: zerotier-one , curl , jq
@@ -44,6 +56,8 @@ APIURL="https://my.zerotier.com/api"
 SILENT=false
 VERBOSE=false
 MYID=$(zerotier-cli info | cut -d " " -f 3)
+HOSTNAME=$MYID
+DESCRIPTION= 
 
 args=()
 while (( $# > 0 )); do
@@ -51,10 +65,12 @@ while (( $# > 0 )); do
     arg_key="${arg%%=*}"
     arg_data="${arg#*=}"
     case $arg_key in
-        --help|-h)      usage; exit 0               ;;
-        --api|-a)       APIKEY=${arg_data}          ;;
-        --url|-u)       APIURL=${arg_data}          ;;
-        --network|-n)   NETWORKID=${arg_data}       ;;                
+        --help|-h)          usage; exit 0               ;;
+        --api|-a)           APIKEY=${arg_data}          ;;
+        --url|-u)           APIURL=${arg_data}          ;;
+        --network|-n)       NETWORKID=${arg_data}       ;;                
+        --member|-m)        HOSTNAME=${arg_data}        ;;                
+        --description|-d)   DESCRIPTION=${arg_data}     ;;
     esac
     shift
 done
@@ -64,22 +80,26 @@ done
 #NETWORKID="16xxxxxxxxxxxxxx"
 #SILENT=false
 #VERBOSE=false
+#HOSTNAME=$MYID
+#DESCRIPTION=`hostname -s`
 #Uncomment and change any of these variables above to overule args
 
-#normalize boolean runtime arguments
+#normalize runtime arguments
 SILENT=`echo $SILENT | awk '{print tolower($0)}'`
 VERBOSE=`echo $VERBOSE | awk '{print tolower($0)}'`
+HOSTNAME=`echo $HOSTNAME | sed 's/ /-/g' | awk '{print tolower($0)}'`
+
 
 #check if arguments are set or dependencies are installed 
 [[ ! -x "$(command -v jq)" ]] && { echo "Error: jq JSON processor is not installed or in PATH. See https://stedolan.github.io/jq/download/"; exit 1; }
 [[ ! -x "$(command -v curl)" ]] && { echo "Error: curl commandline tool is not installed or in PATH"; exit 1; }
-[[ -z "$APIKEY" ]] && { echo "Error: API KEY must specified."; usage; exit 1; }
+[[ -z "$APIKEY" ]] && { echo "Error: API Token must specified."; usage; exit 1; }
 [[ $NETWORKID == all ]] && { echo "Error: NETWORK ID not specified."; usage; exit 1; }
 [[ ! $(echo $APIKEY | awk '{print length}') == 32 ]] && { echo "Syntax Error: API Token can only be a 32-digit alphenumeric value"; exit 1; }
 [[ ! $NETWORKID == all && ! $(echo $NETWORKID | awk '{print length}') == 16 ]] && { echo "Syntax Error: Network ID can only be a 16-digit alphenumeric value"; exit 1; }
 # end argument check
 function zt_member_auth {
-        JSON=`curl -s -H "Authorization: Bearer $APIKEY" $APIURL/network/$NETWORKID/member/$MYID | jq -c '.config.authorized=true'`
+        JSON=`curl -s -H "Authorization: Bearer $APIKEY" $APIURL/network/$NETWORKID/member/$MYID | jq -c --arg name "$HOSTNAME" --arg description "$DESCRIPTION" '.config.authorized=true | .name=$name | .description=$description'`
         curl -s -o /dev/null -H "Authorization: Bearer $APIKEY" -d $JSON $APIURL/network/$NETWORKID/member/$MYID
         #New member - wait for local client to get updated
         echo -ne "waiting for network auth to register"
@@ -95,22 +115,22 @@ if [ -z "$(zerotier-cli listnetworks | grep $NETWORKID)" ]; then
     echo -ne '\n'
     echo "joined network, but need authentication"
     if [ -n "$APIKEY" ]; then 
-        echo "API Key will be used to authorize $MYID"
+        echo "API Token will be used to authorize $MYID"
         zt_member_auth
-        MYIP=`zerotier-cli listnetworks | grep $NETWORKID | grep -o '[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}'`
-        echo "connected to $NETWORKID with ZT assigned IP $MYIP"
+        MYIP=`zerotier-cli get $NETWORKID ip`
+        echo "device connected to $NETWORKID with IP $MYIP"
     fi #auth new member  
 else
     if [ -n "$APIKEY" ]; then 
-        echo "already a member of $NETWORKID"
+        echo "device already a member of $NETWORKID"
         echo "API Key will be used to authorize $MYID"
         zt_member_auth
-        MYIP=`zerotier-cli listnetworks | grep $NETWORKID | grep -o '[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}'`
-        echo "connected to $NETWORKID with ZT assigned IP $MYIP"
-        exit
+        MYIP=`zerotier-cli get $NETWORKID ip`
+        echo "device connected to $NETWORKID with IP $MYIP"
+        exit 0
     fi #auth existing member
-MYIP=`zerotier-cli listnetworks | grep $NETWORKID | grep -o '[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}'`
+MYIP=`zerotier-cli get $NETWORKID ip`
 [[ -z "$MYIP" ]] && { echo "already a member of $NETWORKID, but not authorized"; exit; }
-echo "already a member with ZT assigned IP $MYIP"
+echo "device already a member with IP $MYIP"
 fi #joinmember
-exit
+exit 0
