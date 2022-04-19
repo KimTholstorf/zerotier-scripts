@@ -134,4 +134,4 @@ or alternatively just edit the script variables in the section at line 78 to avo
 
 ---
 
-[ztlogo]: https://upload.wikimedia.org/wikipedia/en/thumb/f/f1/ZeroTier_Logo.png/150px-ZeroTier_Logo.png
+[ztlogo]: https://www.zerotier.com/wp-content/uploads/2020/08/zerotier_logo_black.png
