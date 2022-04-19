@@ -12,9 +12,9 @@ Scripts:
 ---
 
 ## getnetworkmembers
-This script pulls the all the ZeroTier networks you have created or networks shared with you. Each networkname, device member shortnames and IPs will be collected and output to a textfile suited for use with [DNSMASQ](http://www.thekelleys.org.uk/dnsmasq/doc.html). It can be be used with the `addn-hosts=` option in `dnsmasq.conf` ([see an example here](https://github.com/KimTholstorf/zerotier-scripts/blob/master/dnsmasq/dnsmasq.conf)). The textfile or this script can also fairly easily be modified to append to /etc/hosts. There is also an option to only query a specific Network ID instead of all available.
+This script pulls the all your ZeroTier networks (created by yourself) or networks shared with you. Each networkname, device member shortnames and IP addresses will be collected and output to a textfile suited for use with [DNSMASQ](http://www.thekelleys.org.uk/dnsmasq/doc.html). It can be be used with the `addn-hosts=` option in `dnsmasq.conf` ([see an example here](https://github.com/KimTholstorf/zerotier-scripts/blob/master/dnsmasq/dnsmasq.conf)). The textfile or this script can also fairly easily be modified to append to /etc/hosts. There is also an option to only query a specific Network ID instead of all available.
 
-ZeroTier shortnames will be used as hostnames so it is important that all members of a network only use non-DNS compatible characters in their shortname. This script will replace spaces in shortnames with a `-`. Non-compliant members can be renamed from the specific [my.zerotier.com](https://my.zerotier.com/) Network page. Members with empty shortnames will be named after their unique Member ID (10-digit alphanumeric value).
+ZeroTier shortnames will be used as hostnames so it is important that all members of a network only use DNS compatible characters in their shortname. This script will replace spaces in shortnames with a `-`. Non-compliant members can be renamed from the specific [my.zerotier.com](https://my.zerotier.com/) Network page. Members with empty shortnames will be named after their unique Member ID (10-digit alphanumeric value).
 
 ***Usage:***
 ```sh
